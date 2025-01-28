@@ -66,6 +66,7 @@ if uploaded_files:
         
         eafs=[]
         bas=""
+        bool_bas=False
         
         for name in uploaded_files:
             print(name.name)
@@ -73,11 +74,13 @@ if uploaded_files:
                 eafs.append(name)
             elif 'Baselining' in name.name:
                 bas=name
+                bool_bas=True
+                
 
         
         combined_data = process_files(eafs)
         print(combined_data.head())
-        if 'Baselining' in bas.name:
+        if  bool_bas:
             combined_data=combine_baseline_data(bas,combined_data)
         
 
