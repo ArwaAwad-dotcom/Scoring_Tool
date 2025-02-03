@@ -166,7 +166,7 @@ if uploaded_files:
     # Display processed data
     st.write("Processed Data:")
     st.dataframe(combined_data)
-    
+    bool_bas=False
     
     
     #Get the levels and psg level
@@ -214,6 +214,13 @@ if uploaded_files:
                 list_used[all_eng.index(ae)]=list_used[all_eng.index(ae)]/sum_weights
         
         all_engagement[un]=list_used
+        if un==unique_engagement_number[-1] and un=="Previous Year":
+            array_baseline=calculate_psg_score_v2(unique_engagement_matrix,levels_one_two,psg_levels,file_psg)
+            baseline=pd.DataFrame({"Grade Baseline":array_baseline,"Levels":psg_options })
+            base_data_average =convert_df_to_excel(baseline)
+            bool_bas=True
+            
+            
             
 
 
@@ -249,4 +256,12 @@ if uploaded_files:
         file_name="eng_avg.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+    if  bool_bas:
+        st.download_button(
+            label="Baseline Score",
+            data=base_data_average ,
+            file_name="base_avg.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        
 
