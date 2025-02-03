@@ -14,7 +14,16 @@ from openpyxl import load_workbook
 from analysis import combine_baseline_data
 from analysis import calculate_psg_score
 from analysis import calculate_psg_score_v2
+from analysis import level_one_aggregation
+import numpy as np
 
+
+def to_excel(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+    processed_data = output.getvalue()
+    return processed_data
 
 
 
@@ -80,6 +89,15 @@ st.title("Talent Assessment")
 st.write("Upload all the EAF and Baseline Assessments for the talent.")
 
 # Upload multiple files
+
+psg_options = ['PSG 10', 'PSG 11', 'PSG 12-13', 'PSG 14', 'PSG 15-16', 'PSG 17','PSG 18']
+
+# Dropdown for multiple selections
+selected_psg = st.selectbox("Select one or more PSGs:", psg_options)
+
+st.write("You selected",selected_psg)
+
+
 uploaded_files = st.file_uploader("Upload Excel Files", type=['xlsx'], accept_multiple_files=True)
 
 if uploaded_files:
@@ -151,6 +169,68 @@ if uploaded_files:
     
     
     
+    #Get the levels and psg level
+
+    level_two_list=list(level_two['Level 2'])
+    unique_engagement_number=list(combined_data['Engagement Name'].unique())
+
+    psg_levels=selected_psg
+
+    dict_engagement={}
+    #psg_levels='PSG 14'
+
+  
+
+    dict_engagement={}
+    
+    all_engagement={"Level 1":['Professional Behavior','Core Business Skills','Management Skills','Technical Knowledge']}
+    
+    unique_engagement_matrix=np.zeros((len(level_two_list),7))
+    
+    for un in unique_engagement_number:
+        print(un)
+        unique_data_frame=combined_data[combined_data['Engagement Name']==un]
+        unique_data_frame=unique_data_frame.iloc[:,:10]
+        
+        
+        list_grades=[]
+        for i in range(len(unique_data_frame)):
+            get_weight=unique_data_frame['Weight'].iloc[i]
+            list_grades_one=np.array(list(get_weight*unique_data_frame.iloc[i,3:]))
+            unique_engagement_matrix[i]= list_grades_one
+            
+        level_one_egagement_data_frame=level_one_aggregation(unique_engagement_matrix,levels_one_two,psg_levels,file_psg)
+        
+        list_used=list(level_one_egagement_data_frame[psg_levels])
+        
+        all_eng=list(all_engagement["Level 1"])
+        for ae in all_engagement["Level 1"]:
+            print(ae)
+            unique_data_frame_a=unique_data_frame[unique_data_frame["Level 1"]==ae]
+            list_weights=list(unique_data_frame_a['Weight'])
+            print(list_weights)
+            sum_weights=sum(list_weights)
+            if sum_weights>0: 
+                list_used[all_eng.index(ae)]=list_used[all_eng.index(ae)]/sum_weights
+        
+        all_engagement[un]=list_used
+            
+
+
+
+
+
+
+
+    dict_engagement[un]=level_one_egagement_data_frame
+    
+    
+    
+    data_frame_averages=pd.DataFrame(all_engagement)
+    excel_data_average =convert_df_to_excel(data_frame_averages)
+    
+    
+    
     
     
 
@@ -161,5 +241,12 @@ if uploaded_files:
         label="Download CTF",
         data=workbook_data,
         file_name="CTF.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    
+    st.download_button(
+        label="Download Engagement Average",
+        data=excel_data_average ,
+        file_name="eng_avg.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
