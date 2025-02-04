@@ -176,67 +176,76 @@ if uploaded_files:
 
     psg_levels=selected_psg
 
-    dict_engagement={}
-    #psg_levels='PSG 14'
 
-  
 
-    dict_engagement={}
     
+    dict_engagement={}
+
     all_engagement={"Level 1":['Professional Behavior','Core Business Skills','Management Skills','Technical Knowledge']}
     
-    unique_engagement_matrix=np.zeros((len(level_two_list),7))
+    all_col=combined_data.columns
+    psg_levels_list=list(all_col[3:10])
+
+
+
+    psg_level_code= ['PSG 10', 'PSG 11', 'PSG 12-13', 'PSG 14', 'PSG 15-16', 'PSG 17','PSG 18']
+    psg_levels_specific=selected_psg
+    index_psg=psg_level_code.index(psg_levels_specific)
     
+
     for un in unique_engagement_number:
-        print(un)
+        
+        unique_engagement_matrix=np.zeros((len(all_engagement["Level 1"]),7))
+
         unique_data_frame=combined_data[combined_data['Engagement Name']==un]
         unique_data_frame=unique_data_frame.iloc[:,:10]
         
-        
-        list_grades=[]
-        for i in range(len(unique_data_frame)):
-            get_weight=unique_data_frame['Weight'].iloc[i]
-            list_grades_one=np.array(list(get_weight*unique_data_frame.iloc[i,3:]))
-            unique_engagement_matrix[i]= list_grades_one
+        for i,lev in enumerate(all_engagement["Level 1"]):
+            print(lev)
+            unique_data_frame_lev=unique_data_frame[unique_data_frame['Level 1']==lev]
             
-        level_one_egagement_data_frame=level_one_aggregation(unique_engagement_matrix,levels_one_two,psg_levels,file_psg)
+            weight_array=np.array(list(unique_data_frame_lev['Weight']))
+            weight_array= np.nan_to_num(weight_array, nan=0)
+
+            
+            for k,prof in enumerate(psg_levels_list):
+                array_prof=np.array(list(unique_data_frame_lev[prof]))
+                array_prof= np.nan_to_num(array_prof, nan=0)
+
+                dot_product=np.dot(weight_array, array_prof)
+                unique_engagement_matrix[i,k]=dot_product/(np.sum(weight_array))
+                
+        array_keep=list(unique_engagement_matrix[:,index_psg])
         
-        list_used=list(level_one_egagement_data_frame[psg_levels])
+        all_engagement[un]= array_keep
         
-        all_eng=list(all_engagement["Level 1"])
-        for ae in all_engagement["Level 1"]:
-            print(ae)
-            unique_data_frame_a=unique_data_frame[unique_data_frame["Level 1"]==ae]
-            list_weights=list(unique_data_frame_a['Weight'])
-            print(list_weights)
-            sum_weights=sum(list_weights)
-            if sum_weights>0: 
-                list_used[all_eng.index(ae)]=list_used[all_eng.index(ae)]/sum_weights
-        
-        all_engagement[un]=list_used
         if un==unique_engagement_number[-1] and un=="Previous Year":
-            array_baseline=calculate_psg_score_v2(unique_engagement_matrix,levels_one_two,psg_levels,file_psg)
-            baseline=pd.DataFrame({"Grade Baseline":array_baseline,"Levels":psg_options })
-            base_data_average =convert_df_to_excel(baseline)
-            bool_bas=True
+            unique_engagement_matrix_bas=np.zeros((len(level_two_list),7))
+            unique_engagement_matrix_bas_without_multiple=np.zeros((len(level_two_list),7))
+            unique_data_frame_bas=combined_data[combined_data['Engagement Name']==un]
+            unique_data_frame_bas=unique_data_frame_bas.iloc[:,:10]
             
             
+            list_grades=[]
+            for i in range(len(unique_data_frame_bas)):
+                get_weight=unique_data_frame_bas['Weight'].iloc[i]
+                list_grades_one=np.array(list(get_weight*unique_data_frame_bas.iloc[i,3:]))
+                unique_engagement_matrix_bas[i]= list_grades_one
+                unique_engagement_matrix_bas_without_multiple[i]=unique_data_frame_bas.iloc[i,3:]
+                array_baseline=calculate_psg_score_v2(unique_engagement_matrix,levels_one_two,psg_levels,file_psg)
+                array_baseline_without=calculate_psg_score_v2(unique_engagement_matrix_bas_without_multiple,levels_one_two,psg_levels,file_psg)
+
+                baseline=pd.DataFrame({"Levels":psg_options,"Grade Baseline (Weighted_Average)":array_baseline, "Grade Baseline (Without weighted)": array_baseline_without})
+                base_data_average =convert_df_to_excel(baseline)
+                bool_bas=True
+                
             
-
-
-
-
-
-
-
-    dict_engagement[un]=level_one_egagement_data_frame
-    
+        
     
     
     data_frame_averages=pd.DataFrame(all_engagement)
     excel_data_average =convert_df_to_excel(data_frame_averages)
-    
-    
+
     
     
     
